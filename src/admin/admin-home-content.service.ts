@@ -155,6 +155,9 @@ export class AdminHomeContentService {
   createGalleryItem(tenantId: Types.ObjectId, dto: GalleryItemDto) {
     return this.addItem(tenantId, 'gallery', 'GAL', dto, `Admin thêm 1 ảnh vào thư viện trang chủ.`);
   }
+  updateGalleryItem(tenantId: Types.ObjectId, id: string, dto: GalleryItemDto) {
+    return this.updateItem(tenantId, 'gallery', id, dto, `Admin cập nhật 1 ảnh trong thư viện trang chủ.`);
+  }
   deleteGalleryItem(tenantId: Types.ObjectId, id: string) {
     return this.deleteItem(tenantId, 'gallery', id, `Admin xóa 1 ảnh khỏi thư viện trang chủ.`);
   }

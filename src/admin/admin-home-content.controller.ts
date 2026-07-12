@@ -87,6 +87,10 @@ export class AdminHomeContentController {
   createGalleryItem(@CurrentUser() user: JwtPayload, @Body() dto: GalleryItemDto) {
     return this.homeContentService.createGalleryItem(new Types.ObjectId(user.tenantId), dto);
   }
+  @Patch('gallery/:id')
+  updateGalleryItem(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: GalleryItemDto) {
+    return this.homeContentService.updateGalleryItem(new Types.ObjectId(user.tenantId), id, dto);
+  }
   @Delete('gallery/:id')
   deleteGalleryItem(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.homeContentService.deleteGalleryItem(new Types.ObjectId(user.tenantId), id);

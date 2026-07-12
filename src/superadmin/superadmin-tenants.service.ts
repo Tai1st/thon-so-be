@@ -11,6 +11,136 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AssignVillageDto } from './dto/assign-village.dto';
 
+// Logo mặc định cho MỌI tenant mới — Admin tự đổi sau qua "Quản lý Trang
+// chủ" > Thương hiệu (PUT /admin/home-content/branding).
+const DEFAULT_LOGO_URL = 'https://i.ibb.co/Fktt9Cn7/image.png';
+
+function randomId(prefix: string): string {
+  return `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function todayDisplay(): string {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+// Nội dung trang chủ mẫu cho tenant mới, khớp số lượng/cấu trúc bản mẫu
+// "doanket" — CHỈ 2 chỉ số gắn với dữ liệu cư dân thật (Quy Mô Dân Cư/Tổng
+// Số Nhân Khẩu, do scripts/setup-tenant-stats.ts tính lại từ Resident/
+// Household thật) và Diện Tích Tự Nhiên (số liệu khảo sát đất đai thật của
+// từng thôn) mới để "Chưa cập nhật" — còn lại (tin tức/sản vật/lịch công
+// tác/thư viện ảnh/khẩu hiệu ANTT) là nội dung mẫu chung chung, không gắn
+// tên thôn/cán bộ cụ thể nào, để Admin tự sửa lại sau.
+function defaultHomeContent() {
+  const today = todayDisplay();
+  return {
+    security: {
+      hotline: '',
+      hotlineDisplay: '',
+      slogan: 'Đoàn kết - Chủ động - Kỷ cương - An toàn',
+    },
+    stats: [
+      { id: randomId('STAT'), icon: 'fa-map-location-dot', label: 'Diện Tích Tự Nhiên', value: 'Chưa cập nhật', unit: '', breakdown: [] },
+      { id: randomId('STAT'), icon: 'fa-house-chimney', label: 'Quy Mô Dân Cư', value: 'Chưa cập nhật', unit: 'hộ', breakdown: [] },
+      { id: randomId('STAT'), icon: 'fa-people-group', label: 'Tổng Số Nhân Khẩu', value: 'Chưa cập nhật', unit: 'người', breakdown: [] },
+    ],
+    news: [
+      {
+        id: randomId('NEWS'),
+        categorySlug: 'hanh-chinh',
+        category: 'Hành chính',
+        colorClass: 'bg-red-100 text-red-600',
+        date: today,
+        title: 'Chào mừng đến với Cổng Thông Tin Điện Tử',
+        summary: 'Nội dung trang chủ đang được Ban quản lý thôn cập nhật.',
+        content: 'Nội dung trang chủ đang được Ban quản lý thôn cập nhật. Vui lòng quay lại sau.',
+        createdBy: 'Admin',
+      },
+      {
+        id: randomId('NEWS'),
+        categorySlug: 'san-xuat',
+        category: 'Sản xuất',
+        colorClass: 'bg-emerald-100 text-emerald-600',
+        date: today,
+        title: 'Chương trình tập huấn kỹ thuật canh tác nông nghiệp',
+        summary: 'Hội Nông dân phối hợp tổ chức các lớp tập huấn nâng cao kỹ thuật canh tác cho bà con trong thôn.',
+        content:
+          'Nhằm nâng cao năng suất và chất lượng nông sản, Hội Nông dân phối hợp cùng các kỹ sư nông nghiệp tổ chức chương trình tập huấn kỹ thuật canh tác cho bà con trong thôn.\n\nThông tin chi tiết về thời gian, địa điểm sẽ được Ban quản lý thôn cập nhật cụ thể.',
+        createdBy: 'Admin',
+      },
+      {
+        id: randomId('NEWS'),
+        categorySlug: 'doan-the',
+        category: 'Đoàn thể',
+        colorClass: 'bg-amber-100 text-amber-600',
+        date: today,
+        title: 'Phát động phong trào "Ngày Chủ Nhật Xanh"',
+        summary: 'Chi đoàn Thanh niên và Hội Phụ nữ phát động toàn dân tham gia dọn dẹp vệ sinh đường làng.',
+        content:
+          'Thực hiện tiêu chí Xanh - Sạch - Đẹp trong xây dựng Nông thôn mới, Chi đoàn Thanh niên phối hợp Hội Liên hiệp Phụ nữ phát động phong trào ra quân vệ sinh môi trường, trồng cây xanh dọc các tuyến đường trong thôn.\n\nKính mời bà con nhân dân cùng tham gia đóng góp ngày công.',
+        createdBy: 'Admin',
+      },
+    ],
+    products: [
+      {
+        id: randomId('PRD'),
+        name: 'Cà Phê Robusta',
+        badge: 'Chủ Lực',
+        image: 'https://placehold.co/400x260/dcfce7/15803d?text=Ca+Phe+Robusta',
+        desc: 'Hạt cà phê Robusta đậm đà đặc sản Tây Nguyên, trồng hữu cơ cho hương thơm thuần khiết và vị đậm mạnh mẽ.',
+        footerLabel: 'Sản lượng năm:',
+        footerValue: 'Chưa cập nhật',
+      },
+      {
+        id: randomId('PRD'),
+        name: 'Sầu Riêng Ri6',
+        badge: 'Giá Trị Cao',
+        image: 'https://placehold.co/400x260/fef3c7/b45309?text=Sau+Rieng+Ri6',
+        desc: 'Cơm vàng hạt lép, dẻo ngọt đậm hương thơm, thu hoạch theo quy trình xuất khẩu sạch, an toàn cho người tiêu dùng.',
+        footerLabel: 'Diện tích:',
+        footerValue: 'Chưa cập nhật',
+      },
+      {
+        id: randomId('PRD'),
+        name: 'Hồ Tiêu Đen',
+        badge: 'Truyền Thống',
+        image: 'https://placehold.co/400x260/fee2e2/b91c1c?text=Ho+Tieu+Den',
+        desc: 'Hạt chắc, độ cay nồng sâu và thơm tự nhiên đặc trưng. Là mặt hàng thế mạnh lâu đời của bà con trong thôn.',
+        footerLabel: 'Tiêu chuẩn:',
+        footerValue: 'VietGAP',
+      },
+      {
+        id: randomId('PRD'),
+        name: 'Hạt Mắc Ca',
+        badge: 'Kinh Tế Mới',
+        image: 'https://placehold.co/400x260/e0e7ff/4338ca?text=Mac+Ca',
+        desc: 'Nữ hoàng các loại hạt, hạt to tròn đều, chứa hàm lượng dinh dưỡng cao, béo ngậy được thị trường ưa chuộng.',
+        footerLabel: 'Sản xuất:',
+        footerValue: 'Sấy nứt vỏ',
+      },
+      {
+        id: randomId('PRD'),
+        name: 'Chanh Dây Tím',
+        badge: 'Dài Hạn',
+        image: 'https://placehold.co/400x260/fae8ff/86198f?text=Chanh+Day',
+        desc: 'Sản vật mọng nước, vị chua ngọt dạt dào sảng khoái, nguồn nguyên liệu hoàn hảo xuất khẩu đi các nước EU.',
+        footerLabel: 'Nguồn gốc:',
+        footerValue: 'Chuẩn xuất khẩu',
+      },
+    ],
+    schedule: [
+      { id: randomId('SCH'), day: '25', month: 'Tháng 5', title: 'Hội nghị nhân dân quý II', location: 'Nhà văn hóa thôn', time: '07:30' },
+      { id: randomId('SCH'), day: '28', month: 'Tháng 5', title: 'Tập huấn kỹ thuật canh tác nông nghiệp', location: 'Vườn mẫu thôn', time: '08:00' },
+      { id: randomId('SCH'), day: '05', month: 'Tháng 6', title: 'Ngày Chủ nhật xanh', location: 'Toàn thôn', time: '07:00' },
+    ],
+    gallery: [
+      { id: randomId('GAL'), image: 'https://placehold.co/400x260/dcfce7/15803d?text=Hop+trien+khai', caption: 'Họp triển khai kế hoạch sản xuất' },
+      { id: randomId('GAL'), image: 'https://placehold.co/400x260/fef3c7/b45309?text=Thu+hoach', caption: 'Bà con thu hoạch nông sản đầu vụ' },
+      { id: randomId('GAL'), image: 'https://placehold.co/400x260/dbeafe/1e40af?text=Ra+quan+ve+sinh', caption: 'Ra quân vệ sinh môi trường, trồng cây xanh' },
+    ],
+  };
+}
+
 // Mọi collection còn lại có field tenantId (dọn sạch khi xóa hẳn 1 tenant).
 // Không dùng InjectModel riêng cho từng cái vì SuperAdminModule không cần
 // phụ thuộc toàn bộ schema của các module nghiệp vụ khác — xóa thẳng qua
@@ -87,6 +217,7 @@ export class SuperAdminTenantsService {
     const tenant = await this.tenantModel.create({
       slug: dto.slug,
       name: dto.name,
+      logoUrl: DEFAULT_LOGO_URL,
       lat: dto.lat,
       lng: dto.lng,
       boundary: dto.boundary,
@@ -103,11 +234,12 @@ export class SuperAdminTenantsService {
       status: 'active',
     });
 
-    // Khởi tạo sẵn nội dung trang chủ mặc định (rỗng) ngay khi tạo tenant,
-    // để trang chủ công khai + trang đăng nhập có dữ liệu hiển thị ngay
-    // (không 404) mà không phải chờ Admin vào "Quản lý Trang chủ" trước.
-    // Admin sửa lại các trường này sau qua PUT /admin/home-content/branding.
-    await this.homeContentModel.create({ tenantId: tenant._id });
+    // Khởi tạo sẵn nội dung trang chủ mẫu ngay khi tạo tenant, để trang chủ
+    // công khai + trang đăng nhập có dữ liệu hiển thị ngay (không 404, không
+    // trống trơn) mà không phải chờ Admin vào "Quản lý Trang chủ" trước.
+    // Admin sửa lại các trường này sau qua PUT /admin/home-content/branding
+    // và các endpoint CRUD news/stats/... tương ứng.
+    await this.homeContentModel.create({ tenantId: tenant._id, ...defaultHomeContent() });
 
     return {
       tenant,

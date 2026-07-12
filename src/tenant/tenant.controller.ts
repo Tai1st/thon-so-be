@@ -19,6 +19,14 @@ export class TenantController {
     }));
   }
 
+  // Danh mục mọi Xã + thôn cho trang danh mục ở domain gốc (mục 4.1 tài
+  // liệu thiết kế) — FE gọi qua /communes/public khi không xác định được
+  // tenant slug từ subdomain.
+  @Get('communes/public')
+  async listPublicCommunes() {
+    return this.tenantService.findAllPublicCommunes();
+  }
+
   // Trụ sở cơ quan cấp xã (Đảng ủy, HĐND-UBND, MTTQ, Công an xã...) — hiển
   // thị chung cho mọi tenant cùng 1 xã trên bản đồ danh mục (mục 6, mục 9
   // tài liệu thiết kế).
