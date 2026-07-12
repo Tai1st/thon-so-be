@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { SuperAdminTenantsService } from './superadmin-tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
@@ -33,5 +33,10 @@ export class SuperAdminTenantsController {
   @Patch(':id/assign-village')
   async assignVillage(@Param('id') id: string, @Body() dto: AssignVillageDto) {
     return this.tenantsService.assignVillage(id, dto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.tenantsService.remove(id);
   }
 }

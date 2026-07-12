@@ -63,6 +63,8 @@ export class SuperAdminCommunesService {
     village.tenantId = result.tenant._id;
     await commune.save();
 
+    await this.tenantsService.linkVillage(String(result.tenant._id), communeId, villageIndex);
+
     return result;
   }
 }

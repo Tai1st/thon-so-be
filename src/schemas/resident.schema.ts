@@ -47,6 +47,12 @@ export class Resident {
 
   @Prop({ default: '' })
   motherName: string;
+
+  // Tên hội/đoàn thể nhân khẩu này tham gia (vd "Hội Nông dân"), khớp
+  // AssociationQuota.name — "None" nghĩa là không tham gia hội nào, khớp
+  // đúng giá trị mặc định của bản mẫu (mục "Cán bộ Hội" tài liệu thiết kế).
+  @Prop({ default: 'None' })
+  association: string;
 }
 
 export type ResidentDocument = Resident & Document;

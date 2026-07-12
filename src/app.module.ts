@@ -11,6 +11,11 @@ import { HouseholdsModule } from './households/households.module';
 import { RequestsModule } from './requests/requests.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
 import { CommunesModule } from './communes/communes.module';
+import { IncidentsModule } from './incidents/incidents.module';
+import { VillageHeadModule } from './village-head/village-head.module';
+import { AdminModule } from './admin/admin.module';
+import { SecurityTeamModule } from './security-team/security-team.module';
+import { AssociationOfficerModule } from './association-officer/association-officer.module';
 
 @Module({
   imports: [
@@ -30,6 +35,11 @@ import { CommunesModule } from './communes/communes.module';
     RequestsModule,
     SuperAdminModule,
     CommunesModule,
+    IncidentsModule,
+    VillageHeadModule,
+    AdminModule,
+    SecurityTeamModule,
+    AssociationOfficerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

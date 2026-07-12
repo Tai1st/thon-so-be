@@ -4,6 +4,7 @@ import { SuperAdmin, SuperAdminSchema, Tenant, TenantSchema } from '../schemas/t
 import { Account, AccountSchema } from '../schemas/account.schema';
 import { Resident, ResidentSchema } from '../schemas/resident.schema';
 import { Commune, CommuneSchema } from '../schemas/commune.schema';
+import { HomeContent, HomeContentSchema } from '../schemas/home-content.schema';
 import { SuperAdminAuthService } from './superadmin-auth.service';
 import { SuperAdminAuthController } from './superadmin-auth.controller';
 import { SuperAdminTenantsService } from './superadmin-tenants.service';
@@ -21,6 +22,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: Account.name, schema: AccountSchema },
       { name: Resident.name, schema: ResidentSchema },
       { name: Commune.name, schema: CommuneSchema },
+      { name: HomeContent.name, schema: HomeContentSchema },
     ]),
     AuthModule, // dùng chung JwtModule (JwtService) đã cấu hình sẵn
   ],

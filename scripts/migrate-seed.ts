@@ -230,6 +230,7 @@ async function main() {
       group: r.group || 'Khác',
       fatherName: r.fatherName || '',
       motherName: r.motherName || '',
+      association: r.association || 'None',
     })),
   );
   const residentIdByName = new Map(residentDocs.map((r) => [r.name, r._id]));
@@ -285,8 +286,10 @@ async function main() {
     tenantId,
     thu: seed.defaultVillageFund.thu || [],
     chi: (seed.defaultVillageFund.chi || []).map((c: any) => ({
+      id: c.id,
       desc: c.desc,
       amount: c.amount,
+      date: c.date,
     })),
     unpaidHouseholds: seed.defaultVillageFund.unpaidHouseholds || 0,
     totalHouseholds: seed.defaultVillageFund.totalHouseholds || 0,
@@ -312,7 +315,11 @@ async function main() {
   );
 
   console.log('Tạo HomeContent (nội dung trang chủ)...');
-  await HomeContentModel.create({ tenantId, ...seed.defaultHomeContent });
+  await HomeContentModel.create({
+    tenantId,
+    ...seed.defaultHomeContent,
+    oldVillages: ['Đoàn Kết cũ', 'Yên Khánh cũ'],
+  });
 
   console.log('Tạo PermissionMatrix (ma trận phân quyền)...');
   const permissionDoc: Record<string, unknown> = { tenantId };

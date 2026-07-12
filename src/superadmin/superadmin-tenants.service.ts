@@ -1,14 +1,36 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Tenant, TenantDocument } from '../schemas/tenant.schema';
 import { Account, AccountDocument } from '../schemas/account.schema';
 import { Resident, ResidentDocument } from '../schemas/resident.schema';
 import { Commune, CommuneDocument } from '../schemas/commune.schema';
+import { HomeContent, HomeContentDocument } from '../schemas/home-content.schema';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { AssignVillageDto } from './dto/assign-village.dto';
+
+// Mọi collection còn lại có field tenantId (dọn sạch khi xóa hẳn 1 tenant).
+// Không dùng InjectModel riêng cho từng cái vì SuperAdminModule không cần
+// phụ thuộc toàn bộ schema của các module nghiệp vụ khác — xóa thẳng qua
+// tên collection Mongo (đã pluralize theo mặc định của Mongoose).
+const TENANT_SCOPED_COLLECTIONS = [
+  'accounts',
+  'residents',
+  'associationquotas',
+  'auditlogs',
+  'homecontents',
+  'households',
+  'villagefunds',
+  'incidentreports',
+  'residenceregistrations',
+  'incidentminutes',
+  'permissionmatrixes',
+  'deleterequests',
+  'membereditrequests',
+  'newmemberrequests',
+];
 
 @Injectable()
 export class SuperAdminTenantsService {
@@ -17,7 +39,23 @@ export class SuperAdminTenantsService {
     @InjectModel(Account.name) private accountModel: Model<AccountDocument>,
     @InjectModel(Resident.name) private residentModel: Model<ResidentDocument>,
     @InjectModel(Commune.name) private communeModel: Model<CommuneDocument>,
+    @InjectModel(HomeContent.name) private homeContentModel: Model<HomeContentDocument>,
+    @InjectConnection() private connection: Connection,
   ) {}
+
+  // Bỏ gán "claimed" của village trong Commune đang trỏ tới tenant này, nếu
+  // có — dùng chung cho cả remove() và các chỗ unclaim khác.
+  private async unclaimVillageIfLinked(tenant: TenantDocument) {
+    if (tenant.communeId && tenant.communeVillageIndex !== null && tenant.communeVillageIndex !== undefined) {
+      const commune = await this.communeModel.findById(tenant.communeId);
+      const village = commune?.villages[tenant.communeVillageIndex];
+      if (village && String(village.tenantId) === String(tenant._id)) {
+        village.claimed = false;
+        village.tenantId = undefined;
+        await commune!.save();
+      }
+    }
+  }
 
   // Danh sách MỌI tenant kể cả đã khóa (khác /tenants/public — chỉ trả
   // tenant active) kèm thống kê cơ bản (mục 8.6 tài liệu thiết kế).
@@ -65,6 +103,12 @@ export class SuperAdminTenantsService {
       status: 'active',
     });
 
+    // Khởi tạo sẵn nội dung trang chủ mặc định (rỗng) ngay khi tạo tenant,
+    // để trang chủ công khai + trang đăng nhập có dữ liệu hiển thị ngay
+    // (không 404) mà không phải chờ Admin vào "Quản lý Trang chủ" trước.
+    // Admin sửa lại các trường này sau qua PUT /admin/home-content/branding.
+    await this.homeContentModel.create({ tenantId: tenant._id });
+
     return {
       tenant,
       admin: { id: String(admin._id), username: admin.username, name: admin.name },
@@ -93,15 +137,7 @@ export class SuperAdminTenantsService {
 
     // Bỏ gán khỏi thôn cũ (nếu có) trước, để không bao giờ có 2 thôn cùng
     // trỏ về 1 tenant hay 1 thôn bị "claimed" treo sau khi tenant đổi thôn.
-    if (tenant.communeId && tenant.communeVillageIndex !== null && tenant.communeVillageIndex !== undefined) {
-      const oldCommune = await this.communeModel.findById(tenant.communeId);
-      const oldVillage = oldCommune?.villages[tenant.communeVillageIndex];
-      if (oldVillage && String(oldVillage.tenantId) === String(tenant._id)) {
-        oldVillage.claimed = false;
-        oldVillage.tenantId = undefined;
-        await oldCommune!.save();
-      }
-    }
+    await this.unclaimVillageIfLinked(tenant);
 
     if (!dto.communeId) {
       tenant.communeId = null;
@@ -134,5 +170,29 @@ export class SuperAdminTenantsService {
     await tenant.save();
 
     return tenant;
+  }
+
+  // Gán tenant vào đúng thôn/xã ngay sau khi tạo từ bản đồ
+  // (createTenantFromVillage) — village.claimed/tenantId đã được set ở
+  // phía Commune, đây là chiều ngược lại trên chính Tenant document, thiếu
+  // bước này thì tenant hiện "Chưa gán" trong danh sách dù village đã claimed.
+  async linkVillage(tenantId: string, communeId: string, villageIndex: number) {
+    await this.tenantModel.updateOne({ _id: tenantId }, { $set: { communeId, communeVillageIndex: villageIndex } });
+  }
+
+  // Xóa hẳn 1 tenant lỗi/không dùng nữa + mọi dữ liệu liên quan theo
+  // tenantId, và trả lại thôn (nếu có gán) về trạng thái "chưa ai nhận" để
+  // tạo tenant mới cho đúng thôn đó từ bản đồ. Không thể hoàn tác.
+  async remove(id: string) {
+    const tenant = await this.tenantModel.findById(id);
+    if (!tenant) throw new NotFoundException('Không tìm thấy tenant.');
+
+    await this.unclaimVillageIfLinked(tenant);
+    await Promise.all(
+      TENANT_SCOPED_COLLECTIONS.map((name) => this.connection.collection(name).deleteMany({ tenantId: tenant._id })),
+    );
+    await this.tenantModel.deleteOne({ _id: tenant._id });
+
+    return { deleted: true };
   }
 }

@@ -59,22 +59,31 @@ export const HouseholdSchema = SchemaFactory.createForClass(Household);
 HouseholdSchema.index({ tenantId: 1, familyId: 1 }, { unique: true });
 
 // Quỹ thôn công khai (Thu/Chi toàn thôn) — 1 doc/tenant, độc lập với
-// fundObligations theo từng hộ ở trên.
+// fundObligations theo từng hộ ở trên. `id`/`date` phục vụ Sửa/Xóa giao
+// dịch nhập sai qua API.
 @Schema({ _id: false })
 export class VillageFundEntry {
+  @Prop() id?: string;
+
   @Prop({ required: true })
   household: string;
 
   @Prop({ required: true })
   amount: number;
+
+  @Prop() date?: string;
 }
 @Schema({ _id: false })
 export class VillageFundExpense {
+  @Prop() id?: string;
+
   @Prop({ required: true })
   desc: string;
 
   @Prop({ required: true })
   amount: number;
+
+  @Prop() date?: string;
 }
 @Schema({ _id: false })
 export class BankInfo {
@@ -88,16 +97,34 @@ export class BankInfo {
   accountHolder: string;
 }
 
+// Danh mục khoản thu quỹ thôn do Trưởng thôn định nghĩa (vd "Quỹ Nông thôn
+// mới 2026") — áp dụng cho MỌI hộ, mỗi hộ có 1 bản sao trạng thái riêng
+// trong Household.fundObligations (xem lớp FundObligation ở trên).
+@Schema({ _id: false })
+export class FundObligationDef {
+  @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true })
+  amount: number;
+
+  @Prop({ required: true })
+  period: string;
+}
+
 @Schema()
 export class VillageFund {
   @Prop({ type: SchemaTypes.ObjectId, ref: 'Tenant', required: true, unique: true })
   tenantId: Types.ObjectId;
 
-  @Prop({ type: [Object], default: [] })
-  thu: { household: string; amount: number }[];
+  @Prop({ type: [VillageFundEntry], default: [] })
+  thu: VillageFundEntry[];
 
-  @Prop({ type: [Object], default: [] })
-  chi: { desc: string; amount: number }[];
+  @Prop({ type: [VillageFundExpense], default: [] })
+  chi: VillageFundExpense[];
 
   @Prop({ default: 0 })
   unpaidHouseholds: number;
@@ -107,6 +134,9 @@ export class VillageFund {
 
   @Prop({ type: BankInfo, default: {} })
   bankInfo: BankInfo;
+
+  @Prop({ type: [FundObligationDef], default: [] })
+  obligationCatalog: FundObligationDef[];
 }
 
 export type VillageFundDocument = VillageFund & Document;

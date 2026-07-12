@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { HouseholdsService } from './households.service';
 import { UpdateGpsDto } from './dto/update-gps.dto';
@@ -38,6 +38,20 @@ export class HouseholdsController {
       new Types.ObjectId(user.tenantId),
       user.accountId,
       dto.houseNumber,
+    );
+  }
+
+  @Get('village-fund')
+  async getVillageFund(@CurrentUser() user: JwtPayload) {
+    return this.householdsService.getVillageFund(new Types.ObjectId(user.tenantId));
+  }
+
+  @Patch('me/fund-obligations/:id/pay')
+  async payFundObligation(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.householdsService.payFundObligation(
+      new Types.ObjectId(user.tenantId),
+      user.accountId,
+      id,
     );
   }
 }

@@ -19,6 +19,12 @@ export class Tenant {
   @Prop({ required: true })
   name: string;
 
+  // Logo hiển thị ở trang chủ công khai + header mọi cổng dashboard (Admin
+  // sửa qua "Quản lý Trang chủ" > Thương hiệu). Rỗng thì FE dùng ảnh mặc
+  // định /logo.png trong thư mục public.
+  @Prop({ default: '' })
+  logoUrl?: string;
+
   @Prop()
   lat?: number;
 

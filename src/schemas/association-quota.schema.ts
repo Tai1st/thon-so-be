@@ -27,6 +27,11 @@ class Loan {
   @Prop({ required: true }) date: string;
   @Prop({ required: true }) status: string;
   @Prop() note?: string;
+  @Prop({ default: 0 }) interestRate: number;
+  @Prop({ default: 0 }) termMonths: number;
+  @Prop({ type: String, default: null }) completedDate: string | null;
+  @Prop() disburseTxId?: string;
+  @Prop() completeTxId?: string;
 }
 
 @Schema({ _id: false })

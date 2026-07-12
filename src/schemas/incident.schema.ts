@@ -75,3 +75,35 @@ export type ResidenceRegistrationDocument = ResidenceRegistration & Document;
 export const ResidenceRegistrationSchema = SchemaFactory.createForClass(
   ResidenceRegistration,
 );
+
+// Biên bản sự việc — hồ sơ chính thức Tổ ANTT lập sau khi xử lý 1 vụ việc,
+// tùy chọn liên kết ngược lại tin báo đã gây ra nó. Chỉ Tổ ANTT xem được
+// (không hiện với cư dân), khác IncidentReport ở trên do cư dân gửi lên.
+@Schema()
+export class IncidentMinutes {
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Tenant', required: true, index: true })
+  tenantId: Types.ObjectId;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'IncidentReport', default: null })
+  relatedReportId: Types.ObjectId | null;
+
+  @Prop({ required: true })
+  title: string;
+
+  @Prop({ default: '' })
+  location: string;
+
+  @Prop({ default: '' })
+  involvedPeople: string;
+
+  @Prop({ required: true })
+  content: string;
+
+  @Prop({ required: true })
+  createdBy: string;
+
+  @Prop({ required: true })
+  time: string;
+}
+export type IncidentMinutesDocument = IncidentMinutes & Document;
+export const IncidentMinutesSchema = SchemaFactory.createForClass(IncidentMinutes);

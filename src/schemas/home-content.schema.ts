@@ -110,6 +110,18 @@ export class HomeContent {
 
   @Prop({ type: [GalleryItem], default: [] })
   gallery: GalleryItem[];
+
+  // Ảnh nền khối hero trang chủ (Admin sửa qua "Quản lý Trang chủ" >
+  // Thương hiệu). Rỗng thì FE dùng ảnh Unsplash mặc định.
+  @Prop({ default: '' })
+  heroImage: string;
+
+  // Danh sách "thôn cũ" trước khi sáp nhập (vd "Đoàn Kết cũ", "Yên Khánh
+  // cũ") — Admin tự định nghĩa qua "Quản lý Trang chủ", dùng làm: (1) lựa
+  // chọn cho trường Resident.group khi thêm/sửa nhân khẩu, (2) nhãn dòng
+  // breakdown của các chỉ số thống kê (Stat.breakdown) trên trang chủ.
+  @Prop({ type: [String], default: [] })
+  oldVillages: string[];
 }
 
 export type HomeContentDocument = HomeContent & Document;
