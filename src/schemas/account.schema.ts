@@ -50,6 +50,11 @@ export class Account {
 
   @Prop()
   assoc?: string; // chỉ set khi role === 'association-officer'
+
+  // Ảnh đại diện — chủ tài khoản tự đặt qua "auth/me" (mục Sửa hồ sơ),
+  // không phải trường admin quản lý.
+  @Prop({ default: '' })
+  avatarUrl: string;
 }
 
 export type AccountDocument = Account & Document;

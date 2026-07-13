@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Account, AccountDocument } from '../schemas/account.schema';
 import { JwtPayload } from './jwt-payload.interface';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangeOwnPasswordDto } from './dto/change-own-password.dto';
 
 export interface LoginResult {
   accessToken: string;
@@ -65,7 +67,30 @@ export class AuthService {
       role: account.role,
       position: account.position,
       assoc: account.assoc,
+      avatarUrl: account.avatarUrl || '',
       residentId: account.residentId ? String(account.residentId) : null,
     };
+  }
+
+  // Chủ tài khoản tự sửa hồ sơ của chính mình (hiện chỉ có avatarUrl) —
+  // khác admin/accounts vốn chỉ cho Admin sửa role/position của NGƯỜI KHÁC.
+  async updateProfile(tenantId: string, accountId: string, dto: UpdateProfileDto) {
+    const account = await this.accountModel.findOne({ _id: accountId, tenantId });
+    if (!account) throw new NotFoundException('Không tìm thấy tài khoản.');
+    if (dto.avatarUrl !== undefined) account.avatarUrl = dto.avatarUrl;
+    await account.save();
+    return this.me(tenantId, accountId);
+  }
+
+  // Chủ tài khoản tự đổi mật khẩu — bắt buộc xác nhận đúng mật khẩu hiện
+  // tại, khác Admin reset-password (không cần biết mật khẩu cũ).
+  async changeOwnPassword(tenantId: string, accountId: string, dto: ChangeOwnPasswordDto) {
+    const account = await this.accountModel.findOne({ _id: accountId, tenantId });
+    if (!account) throw new NotFoundException('Không tìm thấy tài khoản.');
+    const valid = await bcrypt.compare(dto.currentPassword, account.passwordHash);
+    if (!valid) throw new BadRequestException('Mật khẩu hiện tại không đúng.');
+    account.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await account.save();
+    return { success: true };
   }
 }

@@ -1,6 +1,8 @@
-import { Body, Controller, Get, NotFoundException, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Patch, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangeOwnPasswordDto } from './dto/change-own-password.dto';
 import { TenantGuard } from '../common/guards/tenant.guard';
 import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -28,5 +30,19 @@ export class AuthController {
   @Get('me')
   async me(@CurrentUser() user: JwtPayload) {
     return this.authService.me(user.tenantId, user.accountId);
+  }
+
+  // Chủ tài khoản tự sửa hồ sơ (avatarUrl) — không cần role admin, chỉ cần
+  // đã đăng nhập, vì chỉ thao tác lên chính tài khoản của mình.
+  @UseGuards(TenantGuard, JwtAuthGuard)
+  @Patch('me')
+  async updateProfile(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.tenantId, user.accountId, dto);
+  }
+
+  @UseGuards(TenantGuard, JwtAuthGuard)
+  @Post('me/change-password')
+  async changeOwnPassword(@CurrentUser() user: JwtPayload, @Body() dto: ChangeOwnPasswordDto) {
+    return this.authService.changeOwnPassword(user.tenantId, user.accountId, dto);
   }
 }
