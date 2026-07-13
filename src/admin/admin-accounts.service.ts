@@ -214,43 +214,6 @@ export class AdminAccountsService {
     return { resident, accountCreated };
   }
 
-  // Cấp tài khoản "resident" cho mọi nhân khẩu chưa có, khớp
-  // syncAllResidentAccounts() bản mẫu — bỏ qua nhân khẩu chưa có CCCD hợp lệ.
-  async syncAllResidentAccounts(tenantId: Types.ObjectId) {
-    const residents = await this.residentModel.find({ tenantId }).lean();
-    const existingNames = new Set((await this.accountModel.find({ tenantId }).lean()).map((a) => a.name));
-
-    let created = 0;
-    let skipped = 0;
-    for (const resident of residents) {
-      if (existingNames.has(resident.name)) continue;
-      if (!resident.cccd) {
-        skipped++;
-        continue;
-      }
-      const passwordHash = await this.defaultPasswordHash(tenantId);
-      await this.accountModel.create({
-        tenantId,
-        residentId: resident._id,
-        username: resident.cccd,
-        passwordHash,
-        name: resident.name,
-        role: 'resident',
-        position: '',
-        status: 'active',
-      });
-      created++;
-    }
-
-    await this.auditService.log(
-      tenantId,
-      'Đồng bộ tài khoản',
-      `Admin đồng bộ tài khoản toàn bộ cư dân: tạo mới ${created} tài khoản, bỏ qua ${skipped} cư dân chưa có Căn Cước hợp lệ.`,
-      'Admin',
-    );
-    return { created, skipped };
-  }
-
   async getResidentInfo(tenantId: Types.ObjectId, residentId: string) {
     const resident = await this.residentModel.findOne({ _id: residentId, tenantId }).lean();
     if (!resident) throw new NotFoundException('Không tìm thấy nhân khẩu này.');
@@ -295,99 +258,121 @@ export class AdminAccountsService {
   }
 
   // Nhập cư dân hàng loạt từ file Excel (tab "Quản lý tài khoản"). Hộ được
-  // nhóm qua Số Căn Cước của chủ hộ (headCccd) thay vì mã hộ có sẵn hay
-  // họ tên (họ tên có thể trùng nhau, CCCD thì không): xử lý 2 lượt — lượt
-  // 1 tạo mọi dòng "là chủ hộ" trước (tự sinh mã hộ mới), lượt 2 tạo các
-  // thành viên còn lại, khớp familyId qua CCCD chủ hộ vừa tạo trong CÙNG
-  // file, hoặc tra 1 chủ hộ đã có sẵn trong hệ thống nếu không khớp.
+  // nhóm qua groupKey (khớp cột "SỐ HỘ TỊCH" trong file mẫu sẵn có của
+  // thôn) — mọi dòng cùng groupKey thuộc chung 1 hộ, hệ thống tự sinh mã
+  // hộ thật FAM-xxx cho mỗi nhóm, không lưu lại giá trị groupKey gốc.
   async bulkImportResidents(tenantId: Types.ObjectId, rows: BulkResidentRowDto[]) {
     const CCCD_RE = /^\d{12}$/;
     const PHONE_RE = /^\d{10}$/;
 
-    const results: { row: number; name: string; status: 'created' | 'failed'; reason?: string }[] = [];
-    const headFamilyIdByCccd = new Map<string, string>();
+    type Entry = { row: BulkResidentRowDto; index: number };
+    const results: { row: number; name?: string; status: 'created' | 'skipped' | 'failed'; reason?: string }[] = [];
+    const groups = new Map<string, Entry[]>();
 
-    const headRows = rows
-      .map((row, index) => ({ row, index }))
-      .filter(({ row }) => row.isHouseholder);
-    const memberRows = rows
-      .map((row, index) => ({ row, index }))
-      .filter(({ row }) => !row.isHouseholder);
+    rows.forEach((row, index) => {
+      const key = row.groupKey?.trim();
+      if (!key) {
+        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Số Hộ Tịch để xác định thuộc hộ nào.' });
+        return;
+      }
+      const list = groups.get(key) || [];
+      list.push({ row, index });
+      groups.set(key, list);
+    });
 
-    for (const { row, index } of headRows) {
-      if (row.cccd && !CCCD_RE.test(row.cccd)) {
-        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số Căn Cước phải gồm đúng 12 chữ số.' });
+    for (const entries of groups.values()) {
+      // Validate từng dòng trong hộ trước — 1 dòng lỗi không kéo cả hộ.
+      const valid: Entry[] = [];
+      // Nếu dòng chủ hộ bị bỏ qua vì CCCD đã tồn tại, dùng luôn mã hộ của
+      // cư dân đã có sẵn đó cho các thành viên còn lại — coi như đang bổ
+      // sung thêm người vào hộ cũ, thay vì tạo 1 hộ rỗng không ai làm chủ.
+      let familyIdFromExistingHead: string | undefined;
+
+      for (const { row, index } of entries) {
+        if (!row.name?.trim()) {
+          results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Họ và tên.' });
+          continue;
+        }
+        if (!row.dob?.trim()) {
+          results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Ngày sinh.' });
+          continue;
+        }
+        if (row.cccd && !CCCD_RE.test(row.cccd)) {
+          results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số Căn Cước phải gồm đúng 12 chữ số.' });
+          continue;
+        }
+        if (row.phone && !PHONE_RE.test(row.phone)) {
+          results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số điện thoại phải gồm đúng 10 chữ số.' });
+          continue;
+        }
+
+        if (row.cccd) {
+          const existing = await this.residentModel.findOne({ tenantId, cccd: row.cccd }).lean();
+          if (existing) {
+            if (row.isHouseholder) familyIdFromExistingHead = existing.familyId;
+            results.push({
+              row: index + 1,
+              name: row.name,
+              status: 'skipped',
+              reason: `Đã tồn tại cư dân với Số Căn Cước "${row.cccd}" trong hệ thống, bỏ qua dòng này.`,
+            });
+            continue;
+          }
+        }
+
+        valid.push({ row, index });
+      }
+
+      const heads = valid.filter(({ row }) => row.isHouseholder);
+      let familyId: string;
+      if (heads.length === 1) {
+        familyId = await this.generateFamilyId(tenantId);
+      } else if (heads.length === 0 && familyIdFromExistingHead) {
+        familyId = familyIdFromExistingHead;
+      } else if (heads.length === 0) {
+        for (const { row, index } of valid) {
+          results.push({
+            row: index + 1,
+            name: row.name,
+            status: 'failed',
+            reason: 'Hộ này không có dòng nào được đánh dấu là chủ hộ.',
+          });
+        }
+        continue;
+      } else {
+        for (const { row, index } of valid) {
+          results.push({
+            row: index + 1,
+            name: row.name,
+            status: 'failed',
+            reason: 'Hộ này có nhiều hơn 1 chủ hộ (cùng Số Hộ Tịch nhưng nhiều dòng đánh dấu chủ hộ).',
+          });
+        }
         continue;
       }
-      if (row.phone && !PHONE_RE.test(row.phone)) {
-        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số điện thoại phải gồm đúng 10 chữ số.' });
-        continue;
-      }
-      if (row.cccd && headFamilyIdByCccd.has(row.cccd)) {
-        results.push({
-          row: index + 1,
-          name: row.name,
-          status: 'failed',
-          reason: `Trùng Số Căn Cước "${row.cccd}" với 1 dòng chủ hộ khác trong cùng file.`,
+
+      for (const { row, index } of valid) {
+        await this.createResidentRecord(tenantId, familyId, {
+          ...row,
+          name: row.name as string,
+          dob: row.dob as string,
+          relation: row.isHouseholder ? 'Chủ hộ' : row.relation || 'Thành viên',
         });
-        continue;
+        results.push({ row: index + 1, name: row.name, status: 'created' });
       }
-
-      const familyId = await this.generateFamilyId(tenantId);
-      await this.createResidentRecord(tenantId, familyId, row);
-      if (row.cccd) headFamilyIdByCccd.set(row.cccd, familyId);
-      results.push({ row: index + 1, name: row.name, status: 'created' });
-    }
-
-    for (const { row, index } of memberRows) {
-      if (row.cccd && !CCCD_RE.test(row.cccd)) {
-        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số Căn Cước phải gồm đúng 12 chữ số.' });
-        continue;
-      }
-      if (row.phone && !PHONE_RE.test(row.phone)) {
-        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số điện thoại phải gồm đúng 10 chữ số.' });
-        continue;
-      }
-      if (!row.relation?.trim()) {
-        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Quan hệ với chủ hộ.' });
-        continue;
-      }
-      if (!row.headCccd?.trim()) {
-        results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Số Căn Cước chủ hộ để xác định thuộc hộ nào.' });
-        continue;
-      }
-
-      let familyId = headFamilyIdByCccd.get(row.headCccd);
-      if (!familyId) {
-        const existingHead = await this.residentModel
-          .findOne({ tenantId, cccd: row.headCccd, isHouseholder: true })
-          .lean();
-        familyId = existingHead?.familyId;
-      }
-      if (!familyId) {
-        results.push({
-          row: index + 1,
-          name: row.name,
-          status: 'failed',
-          reason: `Không tìm thấy chủ hộ có Số Căn Cước "${row.headCccd}" trong file hoặc trong hệ thống.`,
-        });
-        continue;
-      }
-
-      await this.createResidentRecord(tenantId, familyId, row);
-      results.push({ row: index + 1, name: row.name, status: 'created' });
     }
 
     const created = results.filter((r) => r.status === 'created').length;
+    const skipped = results.filter((r) => r.status === 'skipped').length;
     const failed = results.filter((r) => r.status === 'failed').length;
 
     await this.auditService.log(
       tenantId,
       'Nhập cư dân hàng loạt',
-      `Admin nhập cư dân từ file Excel: tạo mới ${created} nhân khẩu, ${failed} dòng lỗi.`,
+      `Admin nhập cư dân từ file Excel: tạo mới ${created} nhân khẩu, bỏ qua ${skipped} (CCCD đã tồn tại), ${failed} dòng lỗi.`,
       'Admin',
     );
 
-    return { created, failed, results };
+    return { created, skipped, failed, results };
   }
 }

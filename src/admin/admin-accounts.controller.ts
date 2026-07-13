@@ -48,11 +48,6 @@ export class AdminAccountsController {
     return this.accountsService.toggleStatus(new Types.ObjectId(user.tenantId), id, 'active');
   }
 
-  @Post('sync')
-  async sync(@CurrentUser() user: JwtPayload) {
-    return this.accountsService.syncAllResidentAccounts(new Types.ObjectId(user.tenantId));
-  }
-
   @Post('residents')
   async createResident(@CurrentUser() user: JwtPayload, @Body() dto: CreateResidentDto) {
     return this.accountsService.createResident(new Types.ObjectId(user.tenantId), dto);
