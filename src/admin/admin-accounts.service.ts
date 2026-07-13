@@ -8,6 +8,7 @@ import { AssociationQuota, AssociationQuotaDocument } from '../schemas/associati
 import { Tenant, TenantDocument } from '../schemas/tenant.schema';
 import { EditAccountDto } from './dto/edit-account.dto';
 import { CreateResidentDto } from './dto/create-resident.dto';
+import { EditResidentInfoDto } from './dto/edit-resident.dto';
 import { AdminAuditService } from './admin-audit.service';
 
 @Injectable()
@@ -145,7 +146,7 @@ export class AdminAccountsService {
       gender: dto.gender || 'unknown',
       cccd: dto.cccd || '',
       phone: dto.phone || '',
-      relation: dto.relation,
+      relation: dto.isHouseholder ? 'Chủ hộ' : dto.relation,
       isHouseholder: dto.isHouseholder || false,
       familyId,
       permanentAddress: dto.permanentAddress || '',
@@ -221,5 +222,48 @@ export class AdminAccountsService {
       'Admin',
     );
     return { created, skipped };
+  }
+
+  async getResidentInfo(tenantId: Types.ObjectId, residentId: string) {
+    const resident = await this.residentModel.findOne({ _id: residentId, tenantId }).lean();
+    if (!resident) throw new NotFoundException('Không tìm thấy nhân khẩu này.');
+    return resident;
+  }
+
+  // Admin sửa trực tiếp thông tin nhân khẩu (khác Cư dân/Cán bộ Hội phải
+  // gửi MemberEditRequest chờ duyệt) — cùng quyền với Trưởng thôn ở mục
+  // "Quản lý Toàn Thôn".
+  async editResidentInfo(tenantId: Types.ObjectId, residentId: string, dto: EditResidentInfoDto) {
+    const resident = await this.residentModel.findOne({ _id: residentId, tenantId });
+    if (!resident) throw new NotFoundException('Không tìm thấy nhân khẩu này.');
+
+    Object.assign(resident, dto, {
+      relation: dto.isHouseholder ? 'Chủ hộ' : dto.relation,
+    });
+    await resident.save();
+
+    await this.auditService.log(
+      tenantId,
+      'Sửa thông tin cư dân',
+      `Admin cập nhật thông tin nhân khẩu "${resident.name}".`,
+      'Admin',
+    );
+    return resident;
+  }
+
+  // Admin xóa thẳng nhân khẩu + tài khoản liên quan, không cần qua bước
+  // DeleteRequest chờ tự duyệt lại (Admin đã là cấp phê duyệt cao nhất).
+  async deleteResident(tenantId: Types.ObjectId, residentId: string) {
+    const resident = await this.residentModel.findOneAndDelete({ _id: residentId, tenantId });
+    if (!resident) throw new NotFoundException('Không tìm thấy nhân khẩu này.');
+    await this.accountModel.deleteOne({ tenantId, residentId: resident._id });
+
+    await this.auditService.log(
+      tenantId,
+      'Xóa cư dân',
+      `Admin xóa nhân khẩu "${resident.name}" khỏi hệ thống dữ liệu.`,
+      'Admin',
+    );
+    return { deleted: true };
   }
 }

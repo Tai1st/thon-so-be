@@ -21,9 +21,11 @@ export class CreateResidentDto {
   @IsString()
   phone?: string;
 
+  // Bắt buộc khi KHÔNG phải chủ hộ — chủ hộ thì BE tự gán "Chủ hộ" (xem
+  // AdminAccountsService.createResident).
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  relation: string;
+  relation?: string;
 
   @IsOptional()
   @IsBoolean()
