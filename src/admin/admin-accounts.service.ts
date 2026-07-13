@@ -44,7 +44,18 @@ export class AdminAccountsService {
       tenantId,
       name: { $nin: [...accountedNames] },
     });
-    return { accounts, residentCount, unaccountedCount };
+
+    // Gắn mã hộ (familyId) của cư dân liên kết vào từng tài khoản — dùng để
+    // tìm kiếm/sắp xếp theo hộ ở FE (tab "Quản lý tài khoản").
+    const residentIds = accounts.map((a) => a.residentId).filter((id): id is Types.ObjectId => !!id);
+    const residents = await this.residentModel.find({ _id: { $in: residentIds } }, { familyId: 1 }).lean();
+    const familyIdByResidentId = new Map(residents.map((r) => [String(r._id), r.familyId]));
+    const accountsWithFamilyId = accounts.map((a) => ({
+      ...a,
+      familyId: a.residentId ? familyIdByResidentId.get(String(a.residentId)) : undefined,
+    }));
+
+    return { accounts: accountsWithFamilyId, residentCount, unaccountedCount };
   }
 
   async editAccount(tenantId: Types.ObjectId, accountId: string, dto: EditAccountDto) {
