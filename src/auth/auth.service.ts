@@ -64,10 +64,13 @@ export class AuthService {
     return {
       id: String(account._id),
       name: account.name,
+      username: account.username,
       role: account.role,
       position: account.position,
       assoc: account.assoc,
       avatarUrl: account.avatarUrl || '',
+      status: account.status,
+      lastActive: account.lastActive,
       residentId: account.residentId ? String(account.residentId) : null,
     };
   }

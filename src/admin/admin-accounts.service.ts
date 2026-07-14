@@ -34,7 +34,11 @@ export class AdminAccountsService {
     return this.associationQuotaModel.distinct('name', { tenantId });
   }
 
-  async list(tenantId: Types.ObjectId) {
+  async list(tenantId: Types.ObjectId): Promise<{
+    accounts: (Account & { _id: Types.ObjectId; familyId?: string })[];
+    residentCount: number;
+    unaccountedCount: number;
+  }> {
     const [accounts, residentCount] = await Promise.all([
       this.accountModel.find({ tenantId }).sort({ name: 1 }).lean(),
       this.residentModel.countDocuments({ tenantId }),
