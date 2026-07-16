@@ -1,6 +1,6 @@
-# Tiến độ triển khai BE — `cong-thong-tin-thon-be`
+# Tiến độ triển khai BE — `thon-so-be`
 
-Theo lộ trình mục 11 của `du-an-quan-ly-thon.md` (`E:\Dev\cong-thong-tin-thon`). File này chỉ theo dõi phần **BE (NestJS)**. Xem tiến độ FE tại `E:\Dev\cong-thong-tin-thon-fe\PROGRESS.md`.
+Theo lộ trình mục 11 của `du-an-quan-ly-thon.md` (`E:\Dev\cong-thong-tin-thon`). File này chỉ theo dõi phần **BE (NestJS)**. Xem tiến độ FE tại `E:\Dev\thon-so-fe\PROGRESS.md`.
 
 ## Giai đoạn 1 — Khởi tạo BE NestJS ✅ HOÀN THÀNH
 
@@ -63,7 +63,7 @@ Theo lộ trình mục 11 của `du-an-quan-ly-thon.md` (`E:\Dev\cong-thong-tin-
   - **Quyết định kiến trúc**: bỏ ý định `Commune.rootDomain` (mỗi xã 1 domain riêng) — BE/superadmin vốn không gắn domain nào, 1 superadmin quản lý nhiều xã/nhiều domain bình thường. Chỉ cần tổng quát hóa middleware phía FE (xem PROGRESS.md của FE).
 - [x] **Gán/bỏ gán Xã-Thôn cho tenant ĐÃ CÓ SẴN** — `Tenant` schema thêm `communeId`/`communeVillageIndex`; `PATCH /superadmin/tenants/:id/assign-village` (đồng bộ `lat/lng/boundary`, tự bỏ claimed thôn cũ khi đổi thôn, chặn gán trùng thôn đã có tenant khác — 409, hỗ trợ bỏ gán hoàn toàn `communeId: null`).
 - [x] **`GET /administrative-units`** (public, trong `TenantModule`) — trụ sở cơ quan cấp xã (Đảng ủy/UBND/MTTQ/Công an), không có `tenantId`, hiển thị chung trên bản đồ danh mục.
-- [ ] CRUD `AdministrativeUnit` qua route superadmin (`POST/PATCH /superadmin/administrative-units`) — chưa làm, hiện chỉ đọc (`GET /administrative-units`), tạo/sửa chỉ qua `migrate-seed.ts`.
+- [x] CRUD `AdministrativeUnit` qua route superadmin (`src/superadmin/superadmin-administrative-units.{controller,service}.ts`) — `GET/POST /superadmin/administrative-units`, `PATCH/DELETE /superadmin/administrative-units/:id` (404 nếu không tồn tại). Đã kiểm thử end-to-end bằng curl (login superadmin → create → patch → delete → delete lại trả 404).
 
 ## Giai đoạn 4 — Trang danh mục công khai (`GET /communes/public`) ✅
 
@@ -78,7 +78,7 @@ Theo lộ trình mục 11 của `du-an-quan-ly-thon.md` (`E:\Dev\cong-thong-tin-
 ---
 **Cách chạy lại từ đầu:**
 ```
-cd E:\Dev\cong-thong-tin-thon-be
+cd E:\Dev\thon-so-be
 npm run start:dev                  # port 3000
 npm run migrate:seed               # reset dữ liệu tenant "doanket"
 npm run generate:fake-households   # sinh thêm hộ giả cho đủ 363 hộ
