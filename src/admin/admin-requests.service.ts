@@ -105,7 +105,12 @@ export class AdminRequestsService {
 
     const resident = await this.residentModel.findOne({ _id: req.residentId, tenantId });
     if (resident) {
-      Object.assign(resident, req.newValues);
+      // req.newValues là 1 subdocument Mongoose (SingleNested) — Object.assign
+      // thẳng nó không đánh dấu path nào là modified (dữ liệu thật nằm ở
+      // _doc nội bộ, không phải own enumerable property), khiến save() sau
+      // đó không ghi gì xuống DB. Phải gọi toObject() để lấy plain object
+      // trước, đi qua đúng setter của resident và được track modified.
+      Object.assign(resident, (req.newValues as unknown as { toObject(): object }).toObject());
       await resident.save();
     }
 
