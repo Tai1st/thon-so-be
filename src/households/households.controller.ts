@@ -54,4 +54,14 @@ export class HouseholdsController {
       id,
     );
   }
+
+  @Get('my-association')
+  async getMyAssociation(@CurrentUser() user: JwtPayload) {
+    return this.householdsService.getMyAssociation(new Types.ObjectId(user.tenantId), user.accountId);
+  }
+
+  @Patch('my-association/fees/:id/pay')
+  async payMyAssociationFee(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.householdsService.payMyAssociationFee(new Types.ObjectId(user.tenantId), user.accountId, id);
+  }
 }
