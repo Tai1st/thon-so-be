@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Tenant, TenantSchema, AdministrativeUnit, AdministrativeUnitSchema } from '../schemas/tenant.schema';
 import { Commune, CommuneSchema } from '../schemas/commune.schema';
 import { Household, HouseholdSchema } from '../schemas/household.schema';
+import { Resident, ResidentSchema } from '../schemas/resident.schema';
 import { TenantService } from './tenant.service';
 import { TenantController } from './tenant.controller';
 import { TenantGuard } from '../common/guards/tenant.guard';
@@ -14,6 +15,7 @@ import { TenantGuard } from '../common/guards/tenant.guard';
       { name: AdministrativeUnit.name, schema: AdministrativeUnitSchema },
       { name: Commune.name, schema: CommuneSchema },
       { name: Household.name, schema: HouseholdSchema },
+      { name: Resident.name, schema: ResidentSchema },
     ]),
   ],
   controllers: [TenantController],

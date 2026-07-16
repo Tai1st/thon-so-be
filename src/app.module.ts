@@ -10,7 +10,6 @@ import { HomeContentModule } from './home-content/home-content.module';
 import { HouseholdsModule } from './households/households.module';
 import { RequestsModule } from './requests/requests.module';
 import { SuperAdminModule } from './superadmin/superadmin.module';
-import { CommunesModule } from './communes/communes.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { VillageHeadModule } from './village-head/village-head.module';
 import { AdminModule } from './admin/admin.module';
@@ -34,7 +33,6 @@ import { AssociationOfficerModule } from './association-officer/association-offi
     HouseholdsModule,
     RequestsModule,
     SuperAdminModule,
-    CommunesModule,
     IncidentsModule,
     VillageHeadModule,
     AdminModule,
