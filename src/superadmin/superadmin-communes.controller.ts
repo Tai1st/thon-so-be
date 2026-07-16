@@ -28,7 +28,7 @@ export class SuperAdminCommunesController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<Record<string, unknown>> {
     return this.communesService.findOne(id);
   }
 

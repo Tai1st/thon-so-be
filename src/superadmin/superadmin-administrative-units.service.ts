@@ -10,8 +10,15 @@ export class SuperAdminAdministrativeUnitsService {
     @InjectModel(AdministrativeUnit.name) private administrativeUnitModel: Model<AdministrativeUnitDocument>,
   ) {}
 
-  async findAll() {
-    return this.administrativeUnitModel.find().sort({ name: 1 }).lean();
+  async findAll(communeId?: string) {
+    const filter = communeId ? { communeId } : {};
+    return this.administrativeUnitModel.find(filter).sort({ name: 1 }).lean();
+  }
+
+  // Dùng khi 1 Commune bị xóa hẳn — xóa luôn mọi địa danh đã gán vào xã đó
+  // (không còn xã nào để thuộc về nữa).
+  async removeByCommune(communeId: string) {
+    await this.administrativeUnitModel.deleteMany({ communeId });
   }
 
   async create(dto: CreateAdministrativeUnitDto) {

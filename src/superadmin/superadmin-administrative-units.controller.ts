@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { SuperAdminAdministrativeUnitsService } from './superadmin-administrative-units.service';
 import { CreateAdministrativeUnitDto, UpdateAdministrativeUnitDto } from './dto/administrative-unit.dto';
 import { SuperAdminGuard } from '../common/guards/superadmin.guard';
@@ -9,8 +9,8 @@ export class SuperAdminAdministrativeUnitsController {
   constructor(private administrativeUnitsService: SuperAdminAdministrativeUnitsService) {}
 
   @Get()
-  async findAll() {
-    return this.administrativeUnitsService.findAll();
+  async findAll(@Query('communeId') communeId?: string) {
+    return this.administrativeUnitsService.findAll(communeId);
   }
 
   @Post()

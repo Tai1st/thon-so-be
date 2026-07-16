@@ -2,15 +2,19 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Commune, CommuneDocument } from '../schemas/commune.schema';
+import { Tenant, TenantDocument } from '../schemas/tenant.schema';
 import { parseKmzVillages } from './kmz.util';
 import { SuperAdminTenantsService } from './superadmin-tenants.service';
+import { SuperAdminAdministrativeUnitsService } from './superadmin-administrative-units.service';
 import { CreateTenantFromVillageDto } from './dto/create-tenant-from-village.dto';
 
 @Injectable()
 export class SuperAdminCommunesService {
   constructor(
     @InjectModel(Commune.name) private communeModel: Model<CommuneDocument>,
+    @InjectModel(Tenant.name) private tenantModel: Model<TenantDocument>,
     private tenantsService: SuperAdminTenantsService,
+    private administrativeUnitsService: SuperAdminAdministrativeUnitsService,
   ) {}
 
   async importKmz(name: string, fileBuffer: Buffer) {
@@ -34,10 +38,24 @@ export class SuperAdminCommunesService {
     }));
   }
 
-  async findOne(id: string) {
+  // Kèm tenantSlug/tenantName cho mỗi thôn đã claimed — để trang "Xem bản
+  // đồ" superadmin hiện được thông tin cổng thông tin tương ứng (giống
+  // hành vi CommunesService.findAllPublic() ở phía công khai).
+  async findOne(id: string): Promise<Record<string, unknown>> {
     const commune = await this.communeModel.findById(id).lean();
     if (!commune) throw new NotFoundException('Không tìm thấy xã này.');
-    return commune;
+
+    const tenantIds = commune.villages.map((v) => v.tenantId).filter(Boolean);
+    const tenants = await this.tenantModel.find({ _id: { $in: tenantIds } }, { slug: 1, name: 1 }).lean();
+    const tenantById = new Map(tenants.map((t) => [String(t._id), t]));
+
+    return {
+      ...commune,
+      villages: commune.villages.map((v) => {
+        const tenant = v.tenantId ? tenantById.get(String(v.tenantId)) : undefined;
+        return { ...v, tenantSlug: tenant?.slug ?? null, tenantName: tenant?.name ?? null };
+      }),
+    };
   }
 
   async createTenantFromVillage(communeId: string, villageIndex: number, dto: CreateTenantFromVillageDto) {
@@ -69,12 +87,14 @@ export class SuperAdminCommunesService {
   }
 
   // Xóa hẳn 1 Commune (bản đồ xã đã nhập KMZ) — xóa cascade MỌI tenant đã
-  // tạo từ xã này (cùng toàn bộ dữ liệu của từng tenant), rồi mới xóa bản
-  // ghi Commune. Không thể hoàn tác.
+  // tạo từ xã này (cùng toàn bộ dữ liệu của từng tenant) và mọi địa danh
+  // (AdministrativeUnit) đã gán vào xã này, rồi mới xóa bản ghi Commune.
+  // Không thể hoàn tác.
   async remove(id: string) {
     const commune = await this.communeModel.findById(id);
     if (!commune) throw new NotFoundException('Không tìm thấy xã này.');
     await this.tenantsService.removeTenantsByCommune(id);
+    await this.administrativeUnitsService.removeByCommune(id);
     await this.communeModel.deleteOne({ _id: id });
     return { deleted: true };
   }

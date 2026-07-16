@@ -25,8 +25,8 @@ export class TenantService {
 
   // Trụ sở cơ quan cấp xã — không có tenantId, hiển thị chung cho mọi
   // tenant cùng 1 xã trên bản đồ danh mục (mục 6 tài liệu thiết kế).
-  async findAllAdministrativeUnits(): Promise<AdministrativeUnitDocument[]> {
-    return this.administrativeUnitModel.find().exec();
+  async findAllAdministrativeUnits(communeId: string): Promise<AdministrativeUnitDocument[]> {
+    return this.administrativeUnitModel.find({ communeId }).exec();
   }
 
   // Danh mục mọi Xã (đã nhập KMZ) + thôn bên trong, kèm tenant đã claimed

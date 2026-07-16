@@ -51,12 +51,37 @@ export class Tenant {
 export type TenantDocument = Tenant & Document;
 export const TenantSchema = SchemaFactory.createForClass(Tenant);
 
-// Trụ sở cơ quan cấp xã — KHÔNG có tenantId, hiển thị chung cho mọi tenant
-// cùng 1 xã trên bản đồ danh mục (mục 6 tài liệu thiết kế).
+// Danh mục cố định các loại địa danh hiển thị trên bản đồ danh mục — dùng
+// chung giữa BE (validate DTO) và FE (dropdown chọn loại, icon/màu marker).
+export const ADMINISTRATIVE_UNIT_CATEGORIES = [
+  'dang-uy',
+  'ubnd',
+  'mttq',
+  'cong-an',
+  'truong-hoc',
+  'y-te',
+  'quan-an',
+  'tap-hoa',
+  'khac',
+] as const;
+export type AdministrativeUnitCategory = (typeof ADMINISTRATIVE_UNIT_CATEGORIES)[number];
+
+// Địa danh trên bản đồ danh mục 1 xã — trụ sở cơ quan nhà nước (Đảng ủy/
+// UBND/MTTQ/Công an) VÀ các địa điểm khác (quán ăn, tạp hóa, trường học,
+// y tế...), phân biệt bằng `category`. KHÔNG có tenantId (không thuộc
+// riêng 1 thôn nào) nhưng có `communeId` — gán theo TỪNG XÃ, vì 1 hệ thống
+// có thể quản lý nhiều xã khác nhau qua nhiều Commune (mục 6 tài liệu
+// thiết kế). `communeId` để trống (null) = chưa gán xã nào.
 @Schema()
 export class AdministrativeUnit {
   @Prop({ required: true })
   name: string;
+
+  @Prop({ type: String, enum: ADMINISTRATIVE_UNIT_CATEGORIES, default: 'khac' })
+  category: AdministrativeUnitCategory;
+
+  @Prop({ type: SchemaTypes.ObjectId, ref: 'Commune', default: null, index: true })
+  communeId?: Types.ObjectId | null;
 
   @Prop()
   logoUrl?: string;

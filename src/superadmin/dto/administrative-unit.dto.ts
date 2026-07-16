@@ -1,9 +1,18 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { ADMINISTRATIVE_UNIT_CATEGORIES } from '../../schemas/tenant.schema';
 
 export class CreateAdministrativeUnitDto {
   @IsString()
   @IsNotEmpty()
   name: string;
+
+  @IsIn(ADMINISTRATIVE_UNIT_CATEGORIES)
+  category: string;
+
+  // Tùy chọn — địa danh có thể tạo trước rồi gán xã sau ở trang quản lý.
+  @IsOptional()
+  @IsMongoId()
+  communeId?: string;
 
   @IsOptional()
   @IsString()
@@ -25,6 +34,14 @@ export class UpdateAdministrativeUnitDto {
   @IsString()
   @IsNotEmpty()
   name?: string;
+
+  @IsOptional()
+  @IsIn(ADMINISTRATIVE_UNIT_CATEGORIES)
+  category?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  communeId?: string;
 
   @IsOptional()
   @IsString()

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { TenantService } from './tenant.service';
 
 // Public — không cần auth (mục 4.1 tài liệu thiết kế): danh sách tenant
@@ -27,14 +27,18 @@ export class TenantController {
     return this.tenantService.findAllPublicCommunes();
   }
 
-  // Trụ sở cơ quan cấp xã (Đảng ủy, HĐND-UBND, MTTQ, Công an xã...) — hiển
-  // thị chung cho mọi tenant cùng 1 xã trên bản đồ danh mục (mục 6, mục 9
-  // tài liệu thiết kế).
+  // Địa danh trên bản đồ danh mục — trụ sở cơ quan (Đảng ủy, UBND, MTTQ,
+  // Công an) VÀ các địa điểm khác (quán ăn, tạp hóa...), gán theo TỪNG XÃ
+  // (mục 6, mục 9 tài liệu thiết kế). FE trang danh mục domain gốc truyền
+  // ?communeId=<xã đang hiển thị> — thiếu communeId thì trả rỗng, vì không
+  // còn cách nào biết nên hiện địa danh của xã nào.
   @Get('administrative-units')
-  async listAdministrativeUnits() {
-    const units = await this.tenantService.findAllAdministrativeUnits();
+  async listAdministrativeUnits(@Query('communeId') communeId?: string) {
+    if (!communeId) return [];
+    const units = await this.tenantService.findAllAdministrativeUnits(communeId);
     return units.map((u) => ({
       name: u.name,
+      category: u.category,
       logoUrl: u.logoUrl ?? null,
       lat: u.lat,
       lng: u.lng,
