@@ -28,7 +28,7 @@ export class HomeContentController {
   async get(@CurrentTenant() tenant: TenantDocument): Promise<Record<string, unknown>> {
     const doc = await this.homeContentModel.findOne({ tenantId: tenant._id }).lean();
     if (!doc) throw new NotFoundException('Chưa có nội dung trang chủ cho thôn này.');
-    return { ...doc, siteName: tenant.name || '', logoUrl: tenant.logoUrl || '' };
+    return { ...doc, slug: tenant.slug, siteName: tenant.name || '', logoUrl: tenant.logoUrl || '' };
   }
 
   // "Ban Tự Quản" và "Tổ ANTT" trên trang chủ không phải nội dung soạn

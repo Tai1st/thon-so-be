@@ -20,6 +20,8 @@ import { AdminRequestsService } from './admin-requests.service';
 import { AdminRequestsController } from './admin-requests.controller';
 import { AdminAccountsService } from './admin-accounts.service';
 import { AdminAccountsController } from './admin-accounts.controller';
+import { AdminAssociationsService } from './admin-associations.service';
+import { AdminAssociationsController } from './admin-associations.controller';
 import { AdminPermissionsService } from './admin-permissions.service';
 import { AdminPermissionsController } from './admin-permissions.controller';
 import { AdminHomeContentService } from './admin-home-content.service';
@@ -48,6 +50,7 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [
     AdminRequestsController,
     AdminAccountsController,
+    AdminAssociationsController,
     AdminPermissionsController,
     AdminHomeContentController,
     AdminLogsController,
@@ -56,6 +59,7 @@ import { AuthModule } from '../auth/auth.module';
     AdminAuditService,
     AdminRequestsService,
     AdminAccountsService,
+    AdminAssociationsService,
     AdminPermissionsService,
     AdminHomeContentService,
   ],

@@ -44,14 +44,21 @@ export class AdminHomeContentController {
     return this.homeContentService.updateOldVillages(new Types.ObjectId(user.tenantId), dto);
   }
 
+  // Trưởng thôn cũng được đăng/sửa/xóa tin tức (mục "Tin tức & Thông báo"
+  // ở cổng của họ) — override @Roles('admin') cấp controller cho riêng 3
+  // route này, các route khác (thương hiệu, hội nhóm, sản phẩm...) vẫn
+  // chỉ Admin mới có quyền.
+  @Roles('admin', 'village-head')
   @Post('news')
   createNews(@CurrentUser() user: JwtPayload, @Body() dto: NewsItemDto) {
     return this.homeContentService.createNews(new Types.ObjectId(user.tenantId), dto, user.accountId);
   }
+  @Roles('admin', 'village-head')
   @Patch('news/:id')
   updateNews(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Body() dto: NewsItemDto) {
     return this.homeContentService.updateNews(new Types.ObjectId(user.tenantId), id, dto, user.accountId);
   }
+  @Roles('admin', 'village-head')
   @Delete('news/:id')
   deleteNews(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     return this.homeContentService.deleteNews(new Types.ObjectId(user.tenantId), id);
