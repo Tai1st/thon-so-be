@@ -173,6 +173,19 @@ export class SuperAdminTenantsService {
     @InjectConnection() private connection: Connection,
   ) {}
 
+  // Khi 1 Commune (bản đồ xã) bị xóa hẳn — xóa luôn MỌI tenant đã tạo từ
+  // xã đó (cùng toàn bộ dữ liệu tenant-scoped của từng tenant, qua remove()
+  // có sẵn) chứ không chỉ bỏ gán, vì tenant không còn xã/ranh giới nào để
+  // thuộc về nữa — tạo tenant mới luôn đi qua click-trên-bản-đồ nên không
+  // cần giữ lại tenant "mồ côi" không xã.
+  async removeTenantsByCommune(communeId: string) {
+    const tenants = await this.tenantModel.find({ communeId }, { _id: 1 }).lean();
+    for (const t of tenants) {
+      // eslint-disable-next-line no-await-in-loop
+      await this.remove(String(t._id));
+    }
+  }
+
   // Bỏ gán "claimed" của village trong Commune đang trỏ tới tenant này, nếu
   // có — dùng chung cho cả remove() và các chỗ unclaim khác.
   private async unclaimVillageIfLinked(tenant: TenantDocument) {

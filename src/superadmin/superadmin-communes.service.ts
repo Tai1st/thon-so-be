@@ -67,4 +67,15 @@ export class SuperAdminCommunesService {
 
     return result;
   }
+
+  // Xóa hẳn 1 Commune (bản đồ xã đã nhập KMZ) — xóa cascade MỌI tenant đã
+  // tạo từ xã này (cùng toàn bộ dữ liệu của từng tenant), rồi mới xóa bản
+  // ghi Commune. Không thể hoàn tác.
+  async remove(id: string) {
+    const commune = await this.communeModel.findById(id);
+    if (!commune) throw new NotFoundException('Không tìm thấy xã này.');
+    await this.tenantsService.removeTenantsByCommune(id);
+    await this.communeModel.deleteOne({ _id: id });
+    return { deleted: true };
+  }
 }

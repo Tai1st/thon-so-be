@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -46,5 +47,10 @@ export class SuperAdminCommunesController {
     @Body() dto: CreateTenantFromVillageDto,
   ) {
     return this.communesService.createTenantFromVillage(id, index, dto);
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    return this.communesService.remove(id);
   }
 }
