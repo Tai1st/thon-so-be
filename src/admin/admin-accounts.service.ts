@@ -83,6 +83,13 @@ export class AdminAccountsService {
     else account.assoc = undefined;
     await account.save();
 
+    // Được cử làm Cán bộ Hội đương nhiên cũng là hội viên của chính hội đó
+    // — tự động gắn luôn resident.association, không bắt họ phải tự thêm
+    // mình vào danh sách hội viên như 1 bước thủ công thừa thãi.
+    if (dto.role === 'association-officer' && account.residentId) {
+      await this.residentModel.updateOne({ _id: account.residentId, tenantId }, { association: dto.assoc });
+    }
+
     const changes: string[] = [];
     if (dto.role !== oldRole) changes.push(`vai trò (phân quyền) từ "${oldRole}" thành "${dto.role}"${account.assoc ? ` (phụ trách ${account.assoc})` : ''}`);
     if (account.position !== oldPosition) changes.push(`chức vụ thành "${account.position || 'không có'}"`);
