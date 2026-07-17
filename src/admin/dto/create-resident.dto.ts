@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 export class CreateResidentDto {
   @IsString()
@@ -13,9 +13,8 @@ export class CreateResidentDto {
   @IsIn(['male', 'female', 'unknown'])
   gender?: string;
 
-  @IsOptional()
-  @IsString()
-  cccd?: string;
+  @Matches(/^\d{12}$/, { message: 'Vui lòng nhập đúng Số Căn Cước gồm 12 chữ số.' })
+  cccd: string;
 
   @IsOptional()
   @IsString()

@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migrate:seed": "ts-node scripts/migrate-seed.ts",
     "generate:fake-households": "ts-node scripts/generate-fake-households.ts",
-    "seed:superadmin": "ts-node scripts/seed-superadmin.ts"
+    "seed:superadmin": "ts-node scripts/seed-superadmin.ts",
+    "cleanup:accountless-residents": "ts-node scripts/cleanup-accountless-residents.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -185,26 +185,33 @@ export class AdminAccountsService {
       motherName: data.motherName || '',
     });
 
-    let accountCreated = false;
-    if (resident.cccd) {
-      const existing = await this.accountModel.findOne({ tenantId, username: resident.cccd });
-      if (!existing) {
-        const passwordHash = await this.defaultPasswordHash(tenantId);
-        await this.accountModel.create({
-          tenantId,
-          residentId: resident._id,
-          username: resident.cccd,
-          passwordHash,
-          name: resident.name,
-          role: 'resident',
-          position: '',
-          status: 'active',
-        });
-        accountCreated = true;
-      }
-    }
-
+    const accountCreated = await this.ensureAccountForResident(tenantId, resident);
     return { resident, accountCreated };
+  }
+
+  // Mọi công dân đều có số định danh cá nhân (CCCD) — cư dân "chưa có tài
+  // khoản" trong thực tế chỉ là thiếu dữ liệu CCCD lúc nhập liệu, không
+  // phải không thể có. Vì vậy việc cấp tài khoản KHÔNG chỉ diễn ra lúc
+  // tạo mới, mà còn phải chạy lại mỗi khi admin bổ sung CCCD cho 1 cư dân
+  // đã tồn tại (editResidentInfo) — nếu không, ô CCCD được điền sau sẽ
+  // không bao giờ tự sinh tài khoản.
+  private async ensureAccountForResident(tenantId: Types.ObjectId, resident: ResidentDocument): Promise<boolean> {
+    if (!resident.cccd) return false;
+    const existing = await this.accountModel.findOne({ tenantId, username: resident.cccd });
+    if (existing) return false;
+
+    const passwordHash = await this.defaultPasswordHash(tenantId);
+    await this.accountModel.create({
+      tenantId,
+      residentId: resident._id,
+      username: resident.cccd,
+      passwordHash,
+      name: resident.name,
+      role: 'resident',
+      position: '',
+      status: 'active',
+    });
+    return true;
   }
 
   async createResident(tenantId: Types.ObjectId, dto: CreateResidentDto) {
@@ -253,11 +260,12 @@ export class AdminAccountsService {
       relation: dto.isHouseholder ? 'Chủ hộ' : dto.relation,
     });
     await resident.save();
+    const accountCreated = await this.ensureAccountForResident(tenantId, resident);
 
     await this.auditService.log(
       tenantId,
       'Sửa thông tin cư dân',
-      `Admin cập nhật thông tin nhân khẩu "${resident.name}".`,
+      `Admin cập nhật thông tin nhân khẩu "${resident.name}"${accountCreated ? '; đã tự cấp tài khoản đăng nhập theo CCCD mới' : ''}.`,
       'Admin',
     );
     return resident;
@@ -319,7 +327,11 @@ export class AdminAccountsService {
           results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Ngày sinh.' });
           continue;
         }
-        if (row.cccd && !CCCD_RE.test(row.cccd)) {
+        if (!row.cccd?.trim()) {
+          results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Thiếu Số Căn Cước.' });
+          continue;
+        }
+        if (!CCCD_RE.test(row.cccd)) {
           results.push({ row: index + 1, name: row.name, status: 'failed', reason: 'Số Căn Cước phải gồm đúng 12 chữ số.' });
           continue;
         }

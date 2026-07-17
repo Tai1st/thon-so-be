@@ -20,7 +20,7 @@ export class EditResidentInfoDto {
   @IsNotEmpty()
   dob: string;
 
-  @Matches(/^$|^\d{12}$/, { message: 'Số Căn Cước phải gồm đúng 12 chữ số.' })
+  @Matches(/^\d{12}$/, { message: 'Số Căn Cước phải gồm đúng 12 chữ số.' })
   cccd: string;
 
   @IsIn(['male', 'female', 'unknown'], { message: 'Vui lòng chọn giới tính.' })
