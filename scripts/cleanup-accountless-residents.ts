@@ -75,32 +75,69 @@ async function main() {
   }
   console.log('');
 
-  const emptyHouseholds: string[] = [];
-  const headlessHouseholds: string[] = [];
+  const emptyHouseholdKeys = new Set<string>();
+  const headlessHouseholdKeys = new Set<string>();
   for (const r of accountless) {
     const key = `${r.tenantId}:${r.familyId}`;
     const familyMembers = byFamily.get(key) || [];
     const remaining = familyMembers.filter((m) => accountedResidentIds.has(String(m._id)));
     if (remaining.length === 0) {
-      emptyHouseholds.push(`${r.familyId} (tenant ${tenantNameById.get(String(r.tenantId)) || r.tenantId})`);
+      emptyHouseholdKeys.add(key);
     } else if (r.isHouseholder && !remaining.some((m) => m.isHouseholder)) {
-      headlessHouseholds.push(`${r.familyId} (tenant ${tenantNameById.get(String(r.tenantId)) || r.tenantId})`);
+      headlessHouseholdKeys.add(key);
     }
   }
-  if (emptyHouseholds.length) {
-    console.log(`⚠️  CẢNH BÁO: ${emptyHouseholds.length} hộ sẽ MẤT TOÀN BỘ thành viên sau khi xóa:`);
-    [...new Set(emptyHouseholds)].forEach((h) => console.log(`  - ${h}`));
+
+  if (emptyHouseholdKeys.size) {
+    console.log(`⚠️  CẢNH BÁO: ${emptyHouseholdKeys.size} hộ sẽ MẤT TOÀN BỘ thành viên sau khi xóa — toàn bộ danh sách hộ đó (kể cả người ĐÃ có tài khoản, nếu có) để đối chiếu:`);
+    for (const key of emptyHouseholdKeys) {
+      const [tenantId, familyId] = key.split(':');
+      const members = byFamily.get(key) || [];
+      console.log(`  Hộ ${familyId} (tenant ${tenantNameById.get(tenantId) || tenantId}) — ${members.length} người:`);
+      for (const m of members) {
+        const hasAccount = accountedResidentIds.has(String(m._id));
+        console.log(
+          `    - ${m.name} | sinh ${m.dob} | ${m.relation}${m.isHouseholder ? ' (chủ hộ)' : ''} | CCCD: "${m.cccd || '(trống)'}" | ${hasAccount ? 'ĐÃ có tài khoản' : 'sẽ bị xóa'}`,
+        );
+      }
+    }
     console.log('');
   }
-  if (headlessHouseholds.length) {
-    console.log(`⚠️  CẢNH BÁO: ${headlessHouseholds.length} hộ sẽ MẤT CHỦ HỘ (còn thành viên khác nhưng không ai là chủ hộ):`);
-    [...new Set(headlessHouseholds)].forEach((h) => console.log(`  - ${h}`));
+  if (headlessHouseholdKeys.size) {
+    console.log(`⚠️  CẢNH BÁO: ${headlessHouseholdKeys.size} hộ sẽ MẤT CHỦ HỘ (còn thành viên khác nhưng không ai là chủ hộ):`);
+    for (const key of headlessHouseholdKeys) {
+      const [, familyId] = key.split(':');
+      console.log(`  - ${familyId} (tenant ${tenantNameById.get(key.split(':')[0]) || key.split(':')[0]})`);
+    }
+    console.log('');
+  }
+
+  // Nhóm trùng tên + cùng hộ + cùng tenant — dấu hiệu của bản ghi trùng lặp
+  // thật (import lỗi 2 lần) thay vì trùng ngẫu nhiên giữa 2 người khác nhau.
+  const dupKey = (r: (typeof accountless)[number]) => `${r.tenantId}:${r.familyId}:${r.name}`;
+  const dupGroups = new Map<string, typeof accountless>();
+  for (const r of accountless) {
+    const key = dupKey(r);
+    const list = dupGroups.get(key) || [];
+    list.push(r);
+    dupGroups.set(key, list);
+  }
+  const realDupGroups = [...dupGroups.values()].filter((g) => g.length > 1);
+  if (realDupGroups.length) {
+    console.log(`⚠️  CẢNH BÁO: ${realDupGroups.length} nhóm có khả năng là bản ghi TRÙNG LẶP (cùng tên, cùng hộ, cùng tenant) — kiểm tra kỹ trước khi xóa:`);
+    for (const group of realDupGroups) {
+      const first = group[0];
+      console.log(`  "${first.name}" trong hộ ${first.familyId} (tenant ${tenantNameById.get(String(first.tenantId)) || first.tenantId}) — ${group.length} bản ghi:`);
+      for (const r of group) {
+        console.log(`    - _id=${r._id} | sinh ${r.dob} | ${r.gender} | SĐT: "${r.phone || '(trống)'}" | quan hệ: ${r.relation}`);
+      }
+    }
     console.log('');
   }
 
   console.log('Danh sách cư dân sẽ bị xóa:');
   for (const r of accountless) {
-    console.log(`  - [${r.familyId}] ${r.name} (CCCD: "${r.cccd || '(trống)'}", tenant: ${tenantNameById.get(String(r.tenantId)) || r.tenantId})`);
+    console.log(`  - [${r.familyId}] ${r.name} (_id=${r._id}, CCCD: "${r.cccd || '(trống)'}", tenant: ${tenantNameById.get(String(r.tenantId)) || r.tenantId})`);
   }
 
   if (!CONFIRM) {
