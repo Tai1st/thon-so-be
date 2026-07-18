@@ -16,4 +16,8 @@ export class CreateIncidentReportDto {
   @IsOptional()
   @IsLongitude()
   lng?: number;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

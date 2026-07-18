@@ -1,81 +1,16 @@
 import { IsArray, IsNotEmpty, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  AnttRepresentativeDto,
+  DamageDto,
+  OpinionsDto,
+  OtherInvolvedPersonDto,
+  ReporterDto,
+} from './create-incident-minutes.dto';
 
-export class AnttRepresentativeDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsOptional()
-  @IsString()
-  position?: string;
-}
-
-export class ReporterDto {
-  @IsOptional()
-  @IsString()
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  dob?: string;
-
-  @IsOptional()
-  @IsString()
-  cccd?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  phone?: string;
-}
-
-export class OtherInvolvedPersonDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  role?: string;
-}
-
-export class DamageDto {
-  @IsOptional()
-  @IsString()
-  people?: string;
-
-  @IsOptional()
-  @IsString()
-  property?: string;
-
-  @IsOptional()
-  @IsString()
-  other?: string;
-}
-
-export class OpinionsDto {
-  @IsOptional()
-  @IsString()
-  reporter?: string;
-
-  @IsOptional()
-  @IsString()
-  involved?: string;
-
-  @IsOptional()
-  @IsString()
-  witness?: string;
-}
-
-export class CreateIncidentMinutesDto {
+// Sửa biên bản — thay toàn bộ nội dung (giống form "Lập biên bản mới"
+// nhưng điền sẵn), không phải patch từng phần.
+export class UpdateIncidentMinutesDto {
   @IsOptional()
   @IsString()
   relatedReportId?: string;

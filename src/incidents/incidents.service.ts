@@ -59,6 +59,7 @@ export class IncidentsService {
       lng: dto.lng ?? null,
       status: 'Mới',
       time: nowDisplay(),
+      imageUrl: dto.imageUrl ?? '',
     });
   }
 
@@ -79,6 +80,8 @@ export class IncidentsService {
       hostName: name,
       guestName: dto.guestName,
       guestCccd: dto.guestCccd ?? '',
+      guestCccdFrontUrl: dto.guestCccdFrontUrl ?? '',
+      guestCccdBackUrl: dto.guestCccdBackUrl ?? '',
       relationship: dto.relationship,
       reason: dto.reason ?? '',
       fromDate: dto.fromDate,

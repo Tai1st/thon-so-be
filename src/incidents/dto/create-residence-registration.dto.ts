@@ -9,6 +9,14 @@ export class CreateResidenceRegistrationDto {
   @IsString()
   guestCccd?: string;
 
+  @IsOptional()
+  @IsString()
+  guestCccdFrontUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  guestCccdBackUrl?: string;
+
   @IsString()
   @IsNotEmpty()
   relationship: string;
