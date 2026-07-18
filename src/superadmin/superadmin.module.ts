@@ -22,6 +22,8 @@ import { SuperAdminAdministrativeUnitsService } from './superadmin-administrativ
 import { SuperAdminAdministrativeUnitsController } from './superadmin-administrative-units.controller';
 import { SuperAdminGuard } from '../common/guards/superadmin.guard';
 import { AuthModule } from '../auth/auth.module';
+import { SuperAdminUploadsController } from './superadmin-uploads.controller';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
   imports: [
@@ -35,12 +37,14 @@ import { AuthModule } from '../auth/auth.module';
       { name: HomeContent.name, schema: HomeContentSchema },
     ]),
     AuthModule, // dùng chung JwtModule (JwtService) đã cấu hình sẵn
+    UploadsModule, // dùng chung ImgbbService
   ],
   controllers: [
     SuperAdminAuthController,
     SuperAdminTenantsController,
     SuperAdminCommunesController,
     SuperAdminAdministrativeUnitsController,
+    SuperAdminUploadsController,
   ],
   providers: [
     SuperAdminAuthService,

@@ -223,6 +223,7 @@ pm2 save
 | `JWT_ACCESS_SECRET` | BE | chuỗi ngẫu nhiên dài, tự sinh 1 lần |
 | `PORT` | BE | `8000` |
 | `BE_API_BASE_URL` | FE | `http://127.0.0.1:8000/api` |
+| `IMGBB_API_KEY` | BE | API key lấy tại https://api.imgbb.com/ (dùng chung upload ảnh: logo, hero, avatar, gallery...) |
 
 ---
 

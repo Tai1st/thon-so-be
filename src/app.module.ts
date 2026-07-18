@@ -15,6 +15,7 @@ import { VillageHeadModule } from './village-head/village-head.module';
 import { AdminModule } from './admin/admin.module';
 import { SecurityTeamModule } from './security-team/security-team.module';
 import { AssociationOfficerModule } from './association-officer/association-officer.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AssociationOfficerModule } from './association-officer/association-offi
     AdminModule,
     SecurityTeamModule,
     AssociationOfficerModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
